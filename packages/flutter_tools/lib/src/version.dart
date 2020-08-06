@@ -24,7 +24,7 @@ enum Channel {
 }
 
 /// The flutter GitHub repository.
-const String _flutterGit = 'https://github.com/flutter/flutter.git';
+String get _flutterGit => globals.platform.environment['FLUTTER_GIT_URL'] ?? 'https://github.com/flutter/flutter.git';
 
 /// Retrieve a human-readable name for a given [channel].
 ///
@@ -259,6 +259,13 @@ class FlutterVersion {
         branch: '$_versionCheckRemote/$branch',
         lenient: false,
       );
+    } on VersionCheckError catch (error) {
+      if (globals.platform.environment.containsKey('FLUTTER_GIT_URL')) {
+        globals.logger.printError('Warning: the Flutter git upstream was overriden '
+        'by the environment variable FLUTTER_GIT_URL = $_flutterGit');
+      }
+      globals.logger.printError(error.toString());
+      rethrow;
     } finally {
       await _removeVersionCheckRemoteIfExists();
     }
@@ -776,7 +783,7 @@ class GitTagVersion {
     // recent tag and number of commits past.
     return parse(
       _runGit(
-        'git describe --match *.*.*-*.*.pre --first-parent --long --tags',
+        'git describe --match *.*.* --first-parent --long --tags',
         processUtils,
         workingDirectory,
       )
@@ -851,7 +858,7 @@ class GitTagVersion {
     if (devPatch != null && devVersion != null) {
       return '$x.$y.$z-${devVersion + 1}.0.pre.$commits';
     }
-    return '$x.$y.${z + 1}.pre.$commits';
+    return '$x.$y.${z + 1}-0.0.pre.$commits';
   }
 }
 
